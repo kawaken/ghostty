@@ -39,6 +39,13 @@ class WorktreeStatusModel: ObservableObject {
     @Published private(set) var revision: Int = 0
 
     private let client: GwClient
+    /// The repository root reported by the latest successful `gw list`.
+    ///
+    /// `currentDirectory` is derived from the focused surface and may point
+    /// at the worktree that is about to be removed. `gw clean` deliberately
+    /// excludes the worktree it is run from, so cleanup must run from this
+    /// repository root instead.
+    private var repositoryDirectory: URL?
     private var currentDirectory: URL?
     private var inFlightTask: Task<Void, Never>?
 
@@ -84,6 +91,9 @@ class WorktreeStatusModel: ObservableObject {
                 let output = try await client.fetchWorktrees(directory: directory)
                 guard !Task.isCancelled else { return }
                 self.worktrees = output.worktrees
+                self.repositoryDirectory = URL(
+                    fileURLWithPath: output.repository.path,
+                    isDirectory: true)
                 self.errorMessage = nil
                 self.lastUpdatedAt = Date()
             } catch {
@@ -96,12 +106,12 @@ class WorktreeStatusModel: ObservableObject {
         }
     }
 
-    /// Runs `gw clean --json` (a real, non-dry-run pass) in the
-    /// last-known directory, then refreshes. Callers are expected to have
-    /// already confirmed the candidate list with the user — this does not
-    /// re-confirm.
+    /// Runs `gw clean --json` (a real, non-dry-run pass) in the repository
+    /// root reported by the last successful list, then refreshes from that
+    /// root. Callers are expected to have already confirmed the candidate
+    /// list with the user — this does not re-confirm.
     func clean() {
-        guard let directory = currentDirectory else { return }
+        guard let directory = repositoryDirectory ?? currentDirectory else { return }
         isCleaning = true
 
         Task { @MainActor [weak self, client] in
