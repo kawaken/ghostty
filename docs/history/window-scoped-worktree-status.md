@@ -121,3 +121,27 @@ Issueでの確認により、Agents一覧はアクティブなタブだけでな
   実アプリで確認できる（人手確認待ち）。
 - 既存のWorktree Status/Agents/Markdown Previewの表示・操作を壊していない。
 - Planに実装判断とCI/実機検証結果を記録し、実装PRで`docs/history/`に移動する。
+
+## 実装結果
+
+「実装」セクションの1〜6を計画通りに実装した。
+
+### 既知の制限（実装後の確認）
+
+- `WorktreeStatusPane`の`.task(id: surfaces.map(\.id))`によるAgentsポーリング（750ms間隔）は、
+  tabGroup内のタブごとに1つ動く（各タブが自分のSwiftUIビュー階層内で`WorktreeStatusPane`を
+  描画するため）。同じ`agentStatus`に対して重複してrefreshするだけで結果は壊れないが、
+  タブ数分のポーリングが並行して走る。タブ数が数個程度の通常利用では実用上問題ないと判断し、
+  今回は対処しない。
+- 方針通り、タブをドラッグして別ウィンドウへ切り離す操作には追随しない（切り離し後も元の
+  共有モデルをそのまま参照し続ける）。
+
+## 検証結果
+
+- `just lint`: 成功（0 violations, 0 serious / 187 files）
+- `just test-fast`（`zig build test -Dmacos-app-xctest=false`、macOSアプリのビルドを含む）:
+  `BUILD SUCCEEDED`、exit code 0
+- `just test`（フルスイート、macOS XCTestを含む）: 全テストケースpassed、exit code 0。
+  `AgentStatusTests`・`GwClientTests`を含め failure 0件。
+- 実機でのタブ切り替え・複数ウィンドウ・Agents一覧からのタブ/ペイン遷移の目視確認は未実施
+  （人手確認待ち）。

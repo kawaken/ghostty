@@ -54,8 +54,35 @@ class BaseTerminalController: NSWindowController,
     /// The state for this window's Markdown preview pane.
     let markdownPreview = MarkdownPreviewModel()
 
-    /// The state for this window's Worktree Status pane.
-    let worktreeStatus = WorktreeStatusModel()
+    /// The state for this window's Worktree Status pane. Shared across every
+    /// tab in the same tabGroup (see `init`) so switching tabs doesn't reset
+    /// the pane, matching a typical IDE's window-scoped sidebar.
+    let worktreeStatus: WorktreeStatusModel
+
+    /// The state for this window's Agents list (part of the Worktree Status
+    /// pane). Shared the same way as `worktreeStatus`; tracks every Surface
+    /// across every tab in the tabGroup, not just this controller's own tab
+    /// (see `tabGroupSurfaces`).
+    let agentStatus: AgentStatusModel
+
+    /// Every Surface across every tab in this window's tabGroup (not just
+    /// this controller's own tab), for the Agents list to track. Ghostty
+    /// tabs are backed by separate `NSWindow`s grouped into one `tabGroup`
+    /// (see `TerminalController.newTab`), so this walks every tabbed window's
+    /// controller and flattens their surface trees. Falls back to just this
+    /// controller's own tree when there's no tabGroup (a lone window) so the
+    /// Agents list still works before the window has a `tabGroup` assigned.
+    var tabGroupSurfaces: [Zashiki.SurfaceView] {
+        guard let windows = window?.tabGroup?.windows, !windows.isEmpty else {
+            return Array(surfaceTree)
+        }
+        return windows.flatMap { tabWindow -> [Zashiki.SurfaceView] in
+            guard let controller = tabWindow.windowController as? BaseTerminalController else {
+                return []
+            }
+            return Array(controller.surfaceTree)
+        }
+    }
 
     /// True when any surface in this controller currently has an active bell.
     @Published private(set) var bell: Bool = false
@@ -136,10 +163,17 @@ class BaseTerminalController: NSWindowController,
 
     init(_ ghostty: Zashiki.App,
          baseConfig base: Zashiki.SurfaceConfiguration? = nil,
-         surfaceTree tree: SplitTree<Zashiki.SurfaceView>? = nil
+         surfaceTree tree: SplitTree<Zashiki.SurfaceView>? = nil,
+         worktreeStatus: WorktreeStatusModel? = nil,
+         agentStatus: AgentStatusModel? = nil
     ) {
         self.ghostty = ghostty
         self.derivedConfig = DerivedConfig(ghostty.config)
+        // A caller passes an existing instance (see `TerminalController.newTab`)
+        // to share a window's Worktree Status/Agents state across its tabs.
+        // A fresh window (no parent tab) gets its own new instance.
+        self.worktreeStatus = worktreeStatus ?? WorktreeStatusModel()
+        self.agentStatus = agentStatus ?? AgentStatusModel()
 
         super.init(window: nil)
 
@@ -1466,14 +1500,23 @@ class BaseTerminalController: NSWindowController,
     @IBAction func toggleWorktreeStatus(_ sender: Any?) {
         worktreeStatus.toggle()
         if worktreeStatus.isVisible {
-            if let pwd = focusedSurface?.pwd, !pwd.isEmpty {
-                worktreeStatus.refresh(directory: URL(fileURLWithPath: pwd))
-            }
+            refreshWorktreeStatusIfVisible()
         } else if let focusedSurface {
             // Hiding the pane can leave focus in a weird spot (the pane's
             // own controls, if it had any). Send focus back to the terminal.
             Zashiki.moveFocus(to: focusedSurface)
         }
+    }
+
+    /// Re-runs `gw list` for this tab's directory if the (possibly
+    /// tabGroup-shared, see `worktreeStatus`) pane is visible. Called when
+    /// this tab's pane is first shown, and again whenever this tab becomes
+    /// the active one in a shared pane, since another tab may have left it
+    /// showing a different directory's listing.
+    func refreshWorktreeStatusIfVisible() {
+        guard worktreeStatus.isVisible else { return }
+        guard let pwd = focusedSurface?.pwd, !pwd.isEmpty else { return }
+        worktreeStatus.refresh(directory: URL(fileURLWithPath: pwd))
     }
 
     @IBAction func find(_ sender: Any) {

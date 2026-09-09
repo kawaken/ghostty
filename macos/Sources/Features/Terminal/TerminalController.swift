@@ -64,7 +64,9 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
     init(_ ghostty: Zashiki.App,
          withBaseConfig base: Zashiki.SurfaceConfiguration? = nil,
          withSurfaceTree tree: SplitTree<Zashiki.SurfaceView>? = nil,
-         parent: NSWindow? = nil
+         parent: NSWindow? = nil,
+         worktreeStatus: WorktreeStatusModel? = nil,
+         agentStatus: AgentStatusModel? = nil
     ) {
         // The window we manage is not restorable if we've specified a command
         // to execute. We do this because the restored window is meaningless at the
@@ -76,7 +78,9 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         // Setup our initial derived config based on the current app config
         self.derivedConfig = DerivedConfig(ghostty.config)
 
-        super.init(ghostty, baseConfig: base, surfaceTree: tree)
+        super.init(
+            ghostty, baseConfig: base, surfaceTree: tree,
+            worktreeStatus: worktreeStatus, agentStatus: agentStatus)
 
         // Setup our notifications for behaviors
         let center = NotificationCenter.default
@@ -429,8 +433,14 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
             return nil
         }
 
-        // Create a new window and add it to the parent
-        let controller = TerminalController.init(ghostty, withBaseConfig: baseConfig)
+        // Create a new window and add it to the parent. New tabs share the
+        // parent's Worktree Status/Agents state (rather than getting their
+        // own) so switching tabs doesn't reset that pane; see
+        // `BaseTerminalController.worktreeStatus`.
+        let controller = TerminalController.init(
+            ghostty, withBaseConfig: baseConfig,
+            worktreeStatus: parentController.worktreeStatus,
+            agentStatus: parentController.agentStatus)
         controller.isBackgroundOpaque = parentController.isBackgroundOpaque
         guard let window = controller.window else { return controller }
 
@@ -1218,6 +1228,11 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         self.relabelTabs()
         self.fixTabBar()
         terminalViewContainer?.updateGlassTintOverlay(isKeyWindow: true)
+
+        // Switching to this tab makes it the active one in a (possibly
+        // tabGroup-shared) Worktree Status pane; re-point the listing at
+        // this tab's directory in case another tab last refreshed it.
+        refreshWorktreeStatusIfVisible()
     }
 
     override func windowDidResignKey(_ notification: Notification) {

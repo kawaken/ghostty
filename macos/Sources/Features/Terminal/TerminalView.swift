@@ -41,6 +41,13 @@ protocol TerminalViewModel: ObservableObject {
 
     /// The state for this window's Worktree Status pane.
     var worktreeStatus: WorktreeStatusModel { get }
+
+    /// The state for this window's Agents list.
+    var agentStatus: AgentStatusModel { get }
+
+    /// Every Surface across every tab in this window's tabGroup, for the
+    /// Agents list to track.
+    var tabGroupSurfaces: [Zashiki.SurfaceView] { get }
 }
 
 /// The main terminal view. This terminal view supports splits.
@@ -86,7 +93,8 @@ struct TerminalView<ViewModel: TerminalViewModel>: View {
                 ghostty: ghostty,
                 model: viewModel.worktreeStatus,
                 directory: pwdURL,
-                surfaces: Array(viewModel.surfaceTree)) {
+                surfaces: viewModel.tabGroupSurfaces,
+                agentStatus: viewModel.agentStatus) {
                 MarkdownPreviewSplit(ghostty: ghostty, model: viewModel.markdownPreview) {
                     ZStack {
                         VStack(spacing: 0) {

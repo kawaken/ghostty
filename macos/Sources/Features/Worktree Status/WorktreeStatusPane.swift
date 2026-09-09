@@ -11,11 +11,15 @@ struct WorktreeStatusPane: View {
     /// isn't known.
     let directory: URL?
 
-    /// Every Surface in the terminal window. Agent detection is Surface-based,
-    /// unlike the worktree list which is repository-based.
+    /// Every Surface in the terminal window's tabGroup (every tab, not just
+    /// the focused one). Agent detection is Surface-based, unlike the
+    /// worktree list which is repository-based.
     let surfaces: [Zashiki.SurfaceView]
 
-    @StateObject private var agentStatus = AgentStatusModel()
+    /// Shared with every tab in the same tabGroup (see
+    /// `BaseTerminalController.agentStatus`), so this is owned by the caller
+    /// rather than this view.
+    @ObservedObject var agentStatus: AgentStatusModel
 
     var body: some View {
         VStack(spacing: 0) {
