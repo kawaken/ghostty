@@ -131,18 +131,22 @@ decisions.
   condition prevent the merge, report the blocker clearly. Keep `wip` until
   the associated PR is actually merged; implementation completion, marking a
   PR ready, CI completion, or hands-on verification completion are not reasons
-  to remove it. Remove `wip` as the final cleanup step after the PR merge.
+  to remove it. When an Issue has multiple associated PRs, keep `wip` until
+  the last required PR is merged. Remove `wip` as the final cleanup step after
+  all required PRs merge, after recording the outcome in the Issue.
 - If work is intentionally cancelled, handed off to another agent, or closed
   without an implementation PR, record the reason and current status in the
   Issue before releasing `wip`. Do not remove `wip` merely because the current
   session or implementation work has ended.
 - If the user asks to handle the Issue end-to-end, the draft-PR Plan review
   step may be folded into the same implementation flow.
-- Don't close the issue yourself unless it's a documentation-only change
-  with nothing to verify. For other changes, leave the close itself to the
-  human, whether they close it directly or tell you to.
-- Don't let a PR auto-close the issue (e.g. via "Closes #123" in the PR
-  body). Close the issue explicitly, as its own step.
+- Close an Issue only after the work is complete, all required PRs are merged,
+  and `wip` has been removed. Do not let a PR auto-close the Issue (for
+  example, do not use `Closes #123` in the PR body); close it explicitly as a
+  separate step and record the completion reason in a comment. An agent may
+  close the Issue automatically for documentation-only work with nothing to
+  verify, or when the user asked for end-to-end handling / explicitly asked
+  for the Issue to be closed. Otherwise, leave the final close to the human.
 - If a PR carries a large enough change that it needs hands-on verification
   (visual/behavioral, beyond what CI already checks), add the
   `needs-verification` label to the PR itself, not the issue. This label makes
