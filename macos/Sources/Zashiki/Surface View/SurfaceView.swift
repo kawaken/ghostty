@@ -38,6 +38,8 @@ extension Zashiki {
         // remains the same, the surface that is being rendered remains the same.
         @ObservedObject var surfaceView: SurfaceView
 
+        @ObservedObject private var agentConversationHistory: AgentConversationHistory
+
         // True if this surface is part of a split view. This is important to know so
         // we know whether to dim the surface out of focus.
         var isSplit: Bool = false
@@ -58,6 +60,12 @@ extension Zashiki {
 
         private var isFocusedSurface: Bool {
             surfaceFocus || lastFocusedSurface?.value === surfaceView
+        }
+
+        init(surfaceView: SurfaceView, isSplit: Bool = false) {
+            _surfaceView = ObservedObject(wrappedValue: surfaceView)
+            _agentConversationHistory = ObservedObject(wrappedValue: surfaceView.agentConversationHistory)
+            self.isSplit = isSplit
         }
 
         var body: some View {
@@ -170,6 +178,11 @@ extension Zashiki {
                     )
                 }
 
+                AgentConversationHistoryOverlay(
+                    surfaceView: surfaceView,
+                    history: agentConversationHistory)
+                    .zIndex(2)
+
                 // Show bell border if enabled
                 if ghostty.config.bellFeatures.contains(.border) {
                     BellBorderOverlay(bell: surfaceView.bell)
@@ -207,6 +220,16 @@ extension Zashiki {
                 // This is disabled except on macOS because it uses AppKit drag/drop APIs.
                 SurfaceGrabHandle(surfaceView: surfaceView)
                 #endif
+            }
+            .task(id: surfaceView.id) {
+                while !Task.isCancelled {
+                    agentConversationHistory.refresh(surface: surfaceView)
+                    do {
+                        try await Task.sleep(nanoseconds: 750_000_000)
+                    } catch {
+                        return
+                    }
+                }
             }
         }
     }
