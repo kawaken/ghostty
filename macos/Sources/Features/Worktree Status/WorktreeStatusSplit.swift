@@ -17,6 +17,8 @@ struct WorktreeStatusSplit<Content: View>: View {
 
     let surfaces: [Zashiki.SurfaceView]
 
+    @ObservedObject var agentStatus: AgentStatusModel
+
     @ViewBuilder let content: () -> Content
 
     /// The fractional width of the pane vs. the terminal content.
@@ -28,7 +30,7 @@ struct WorktreeStatusSplit<Content: View>: View {
                 content()
             } else {
                 SplitView(.horizontal, $split, dividerColor: ghostty.config.splitDividerColor, left: {
-                    WorktreeStatusPane(model: model, directory: directory, surfaces: surfaces)
+                    WorktreeStatusPane(model: model, directory: directory, surfaces: surfaces, agentStatus: agentStatus)
                 }, right: {
                     content()
                 }, onEqualize: {
