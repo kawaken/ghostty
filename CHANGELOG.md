@@ -1,7 +1,13 @@
-
 # Changelog
 
 ## Unreleased
+
+- Worktree StatusとAgentsの状態をウィンドウ内のタブ間で共有し、Agents一覧から別タブ・分割ペインへ移動できるように
+- Agentの会話履歴をSurface内のレールとして表示し、該当する会話位置へ移動できるように
+- Worktree StatusとAgentsを個別に表示・非表示できるようにし、両方をサイドパネル内で分割表示できるように
+- Agentsの確認待ち・作業中・アイドル状態の検出精度を改善
+- Worktree Statusから、フォーカス中のWorktreeを含む不要なWorktreeを正しく削除できるように修正
+- Worktree Statusのツールチップが行全体で表示されるように修正
 
 ## v0.3.1 (2026-09-06)
 
