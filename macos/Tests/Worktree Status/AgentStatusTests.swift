@@ -30,6 +30,17 @@ struct AgentStatusTests {
         #expect(result == .init(provider: .claude, activity: .idle))
     }
 
+    @Test func detectsPromptBeforeAgentStatusBarAsIdle() {
+        let result = AgentDetector.detect(.init(
+            processName: "claude",
+            screenContents: ">\n" +
+                "gw [main] [So5] C:_ 5:_ 7:_\n" +
+                "∥ plan mode on (shift+tab to cycle) · ←for agents",
+            inputLine: ""))
+
+        #expect(result == .init(provider: .claude, activity: .idle))
+    }
+
     @Test func detectsWrappedClaudeFromScreenBranding() {
         let result = AgentDetector.detect(.init(
             processName: "node",
@@ -79,6 +90,15 @@ struct AgentStatusTests {
         #expect(result == .init(provider: .claude, activity: .waiting))
     }
 
+    @Test func detectsConfirmationPromptWithCancelFooterAsWaiting() {
+        let result = AgentDetector.detect(.init(
+            processName: "codex",
+            screenContents: "Do you want to make this edit to main.go?\nEsc to cancel",
+            inputLine: ""))
+
+        #expect(result == .init(provider: .codex, activity: .waiting))
+    }
+
     @Test func returnsUnknownForUnrecognizedScreen() {
         let result = AgentDetector.detect(.init(
             processName: "claude",
@@ -95,6 +115,36 @@ struct AgentStatusTests {
             inputLine: ""))
 
         #expect(result == .init(provider: .codex, activity: .working))
+    }
+
+    @Test func detectsThoughtForProgressAsWorking() {
+        let result = AgentDetector.detect(.init(
+            processName: "codex",
+            screenContents: "Schlepping… (17s · thought for 3s)",
+            inputLine: ""))
+
+        #expect(result == .init(provider: .codex, activity: .working))
+    }
+
+    @Test func detectsShellCommandProgressOutsideRecentFooterAsWorking() {
+        let output = (0..<9).map { "output line \($0)" }.joined(separator: "\n")
+        let result = AgentDetector.detect(.init(
+            processName: "codex",
+            screenContents: "Running 1 shell command\n" + output,
+            inputLine: ""))
+
+        #expect(result == .init(provider: .codex, activity: .working))
+    }
+
+    @Test func idlePromptTakesPrecedenceOverStaleWorkingText() {
+        let result = AgentDetector.detect(.init(
+            processName: "codex",
+            screenContents: "Running 1 shell command\n>\n" +
+                "gw [main] [So5] C:_ 5:_ 7:_\n" +
+                "∥ plan mode on (shift+tab to cycle) · ←for agents",
+            inputLine: ""))
+
+        #expect(result == .init(provider: .codex, activity: .idle))
     }
 
     @Test func ignoresNonAgentProcess() {
