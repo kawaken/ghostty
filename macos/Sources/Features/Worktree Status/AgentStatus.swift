@@ -61,7 +61,7 @@ enum AgentDetector {
             return .init(provider: provider, activity: .idle)
         }
 
-        if isWorking(lowerBottom: lowerBottom) {
+        if isWorking(lowerScreen: input.screenContents.lowercased(), lowerBottom: lowerBottom) {
             return .init(provider: provider, activity: .working)
         }
 
@@ -90,7 +90,7 @@ enum AgentDetector {
 
     private static func bottomLines(of text: String) -> String {
         text.split(whereSeparator: \.isNewline)
-            .suffix(8)
+            .suffix(16)
             .joined(separator: "\n")
     }
 
@@ -104,6 +104,9 @@ enum AgentDetector {
             lowerBottom.contains("esc to cancel") {
             return true
         }
+
+        // Confirmation dialogs use this footer without the selection controls.
+        if lowerBottom.contains("esc to cancel") { return true }
 
         let hasPermissionWord = lowerBottom.contains("permission") ||
             lowerBottom.contains("approve") ||
@@ -122,21 +125,33 @@ enum AgentDetector {
         return last.hasSuffix("?") || last.hasSuffix("？")
     }
 
-    private static func isWorking(lowerBottom: String) -> Bool {
-        [
+    private static func isWorking(lowerScreen: String, lowerBottom: String) -> Bool {
+        let recentMarkers = [
             "thinking",
             "working",
             "generating",
             "running",
+            "thought for",
             "esc to interrupt",
             "ctrl+c to stop",
-        ].contains { lowerBottom.contains($0) }
+        ]
+        if recentMarkers.contains(where: lowerBottom.contains) { return true }
+
+        // These progress lines can be pushed out of the recent footer by the
+        // command output they describe, so inspect the whole visible viewport
+        // for the more specific forms rather than treating any old "running"
+        // text as activity.
+        if lowerScreen.contains("thought for") { return true }
+        return lowerScreen.split(whereSeparator: \.isNewline).contains { line in
+            line.contains("running") && line.contains("shell command")
+        }
     }
 
     private static func isIdle(lowerBottom: String) -> Bool {
-        guard let lastLine = lowerBottom.split(whereSeparator: \.isNewline).last else { return false }
-        let last = lastLine.trimmingCharacters(in: .whitespaces)
-        return last.contains("❯") || last.contains("›") || last == ">" || last.hasPrefix("> ")
+        lowerBottom.split(whereSeparator: \.isNewline).reversed().contains { line in
+            let line = line.trimmingCharacters(in: .whitespaces)
+            return line == "❯" || line == "›" || line == ">"
+        }
     }
 }
 
