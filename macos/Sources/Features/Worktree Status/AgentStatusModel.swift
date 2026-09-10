@@ -20,9 +20,24 @@ struct SurfaceAgentStatus: Identifiable {
 /// reading terminal buffers.
 @MainActor
 final class AgentStatusModel: ObservableObject {
+    /// Whether the Agents side panel is currently shown.
+    @Published var isVisible: Bool = false
+
     @Published private(set) var agents: [SurfaceAgentStatus] = []
 
     private var history: [UUID: AgentHistory] = [:]
+
+    func open() {
+        isVisible = true
+    }
+
+    func close() {
+        isVisible = false
+    }
+
+    func toggle() {
+        isVisible.toggle()
+    }
 
     func refresh(surfaces: [Zashiki.SurfaceView], now: Date = Date()) {
         var next: [SurfaceAgentStatus] = []

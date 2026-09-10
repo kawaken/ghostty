@@ -3,6 +3,21 @@ import Testing
 @testable import Zashiki
 
 struct AgentStatusTests {
+    @Test @MainActor func togglesAgentsPaneVisibility() {
+        let model = AgentStatusModel()
+        #expect(!model.isVisible)
+
+        model.open()
+        #expect(model.isVisible)
+
+        model.toggle()
+        #expect(!model.isVisible)
+
+        model.toggle()
+        model.close()
+        #expect(!model.isVisible)
+    }
+
     @Test func detectsClaudeFromForegroundProcess() {
         let result = AgentDetector.detect(.init(
             processName: "claude",

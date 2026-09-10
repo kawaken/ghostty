@@ -349,6 +349,12 @@
                                     <action selector="toggleWorktreeStatus:" target="-1" id="gW5-St-Act"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Toggle Agents" keyEquivalent="a" id="gW5-Ag-Tog">
+                                <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>
+                                <connections>
+                                    <action selector="toggleAgents:" target="-1" id="gW5-Ag-Act"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="Change Tab Title..." id="iac-lh-Cl7">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
