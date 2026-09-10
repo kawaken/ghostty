@@ -59,10 +59,9 @@ class BaseTerminalController: NSWindowController,
     /// the pane, matching a typical IDE's window-scoped sidebar.
     let worktreeStatus: WorktreeStatusModel
 
-    /// The state for this window's Agents list (part of the Worktree Status
-    /// pane). Shared the same way as `worktreeStatus`; tracks every Surface
-    /// across every tab in the tabGroup, not just this controller's own tab
-    /// (see `tabGroupSurfaces`).
+    /// The state for this window's Agents pane. Shared the same way as
+    /// `worktreeStatus`; tracks every Surface across every tab in the
+    /// tabGroup, not just this controller's own tab (see `tabGroupSurfaces`).
     let agentStatus: AgentStatusModel
 
     /// Every Surface across every tab in this window's tabGroup (not just
@@ -1504,6 +1503,15 @@ class BaseTerminalController: NSWindowController,
         } else if let focusedSurface {
             // Hiding the pane can leave focus in a weird spot (the pane's
             // own controls, if it had any). Send focus back to the terminal.
+            Zashiki.moveFocus(to: focusedSurface)
+        }
+    }
+
+    @IBAction func toggleAgents(_ sender: Any?) {
+        agentStatus.toggle()
+        if !agentStatus.isVisible, !worktreeStatus.isVisible, let focusedSurface {
+            // Hiding the last side panel can leave focus in a control that
+            // belonged to the panel. Send focus back to the terminal.
             Zashiki.moveFocus(to: focusedSurface)
         }
     }
