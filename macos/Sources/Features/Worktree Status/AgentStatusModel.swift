@@ -1,5 +1,4 @@
 import AppKit
-import Darwin
 import Foundation
 
 struct SurfaceAgentStatus: Identifiable {
@@ -30,19 +29,11 @@ final class AgentStatusModel: ObservableObject {
         var activeIDs: Set<UUID> = []
 
         for surface in surfaces {
-            guard let foregroundPID = surface.surfaceModel?.foregroundPID,
-                  let processName = ProcessNameResolver.name(for: foregroundPID)
-            else { continue }
+            surface.agentConversationHistory.refresh(surface: surface)
+            guard let detection = surface.agentConversationHistory.detection else { continue }
 
             let screenContents = surface.cachedVisibleContents.get()
-            let inputLine = surface.cachedInputLineBeforeCursor.get()
             let previous = history[surface.id]
-            let detection = AgentDetector.detect(.init(
-                processName: processName,
-                screenContents: screenContents,
-                inputLine: inputLine))
-
-            guard let detection else { continue }
             activeIDs.insert(surface.id)
 
             let lastUpdatedAt: Date
@@ -83,13 +74,4 @@ private struct AgentHistory {
     let detection: AgentDetection
     let screenContents: String
     let lastUpdatedAt: Date
-}
-
-private enum ProcessNameResolver {
-    static func name(for pid: Int) -> String? {
-        var buffer = [CChar](repeating: 0, count: 4096)
-        let length = proc_pidpath(Int32(pid), &buffer, UInt32(buffer.count))
-        guard length > 0 else { return nil }
-        return String(cString: buffer)
-    }
 }

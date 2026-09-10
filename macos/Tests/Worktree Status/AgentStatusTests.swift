@@ -105,4 +105,36 @@ struct AgentStatusTests {
 
         #expect(result == nil)
     }
+    @Test func parsesClaudeConversationMarkersAndRows() {
+        let entries = AgentConversationParser.parse(
+            provider: .claude,
+            screenContents: "Claude Code\n❯ inspect the build\n⏺ The build is clean\n❯",
+            totalRows: 20)
+
+        #expect(entries.map(\.kind) == [.user, .assistant])
+        #expect(entries.map(\.preview) == ["inspect the build", "The build is clean"])
+        #expect(entries.map(\.row) == [17, 18])
+    }
+
+    @Test func parsesCodexMultiLineResponse() {
+        let entries = AgentConversationParser.parse(
+            provider: .codex,
+            screenContents: "OpenAI Codex\n› fix the test\n• I found the failing assertion.\n  It is in the fixture.\n›",
+            totalRows: 4)
+
+        #expect(entries.count == 2)
+        #expect(entries[0].kind == .user)
+        #expect(entries[1].kind == .assistant)
+        #expect(entries[1].preview == "I found the failing assertion. It is in the fixture.")
+        #expect(entries[1].row == 2)
+    }
+
+    @Test func ignoresUnknownConversationMarkers() {
+        let entries = AgentConversationParser.parse(
+            provider: .codex,
+            screenContents: "OpenAI Codex\nplain output\n❯ not a Codex marker",
+            totalRows: 3)
+
+        #expect(entries.isEmpty)
+    }
 }

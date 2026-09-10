@@ -203,6 +203,9 @@ extension Zashiki {
         private(set) var cachedScreenContents: CachedValue<String>
         private(set) var cachedVisibleContents: CachedValue<String>
 
+        /// The transient Claude/Codex conversation markers shown on this Surface.
+        let agentConversationHistory: AgentConversationHistory
+
         // The cached input line text before the cursor, used to give IMEs
         // (e.g. ATOK) surrounding text context. See NSTextInputClient
         // extension below. Duration is much shorter than the other caches
@@ -219,6 +222,7 @@ extension Zashiki {
 
         init(_ app: ghostty_app_t, baseConfig: SurfaceConfiguration? = nil, uuid: UUID? = nil) {
             self.markedText = NSMutableAttributedString()
+            self.agentConversationHistory = AgentConversationHistory()
 
             // Our initial config always is our application wide config.
             if let appDelegate = NSApplication.shared.delegate as? AppDelegate {
@@ -423,6 +427,15 @@ extension Zashiki {
         override func endSearch() {
             Zashiki.moveFocus(to: self)
             super.endSearch()
+        }
+
+        func focusAndScroll(to entry: AgentConversationEntry) {
+            window?.makeKeyAndOrderFront(nil)
+            if !NSApp.isActive {
+                NSApp.activate(ignoringOtherApps: true)
+            }
+            Zashiki.moveFocus(to: self)
+            _ = surfaceModel?.perform(action: "scroll_to_row:\(entry.row)")
         }
 
         override func focusDidChange(_ focused: Bool) {
